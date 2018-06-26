@@ -125,7 +125,7 @@ spec:
     metadata:
       labels:
         name: {{ kubernetes_deployment_name }}-web-deploy
-        app: awx
+        app-web: awx-web
         service: django
         app: rabbitmq
     spec:
@@ -255,7 +255,7 @@ spec:
       port: 80
       targetPort: 8052
   selector:
-    app: awx
+    app: awx-web
 ---
 apiVersion: v1
 kind: Service
