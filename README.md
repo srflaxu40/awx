@@ -17,4 +17,11 @@ The AWX Project Frequently Asked Questions can be found [here](https://www.ansib
 * This repo was forked from the official [AWX repo](https://github.com/ansible/awx).
 * This was to customize the contents.  Please refer to the official documentation otherwise.
 
+---
 
+# Setup and installation:
+* Edit the namespace and context for kubernetes / helm in `installer/inventory`
+* Install pip modules:
+  `pip install -r requirements.txt`
+* Run:
+  `ansible-playbook -i inventory install.yml`
