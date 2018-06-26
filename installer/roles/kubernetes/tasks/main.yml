@@ -1,0 +1,111 @@
+---
+- fail:
+    msg: "Only set one of kubernetes_context or openshift_host"
+  when: openshift_host is defined and kubernetes_context is defined
+
+- name: Set kubernetes base path
+  set_fact:
+    kubernetes_base_path: "{{ local_base_config_path|default('/tmp') }}/{{ kubernetes_deployment_name }}-config"
+
+- include_tasks: openshift.yml
+  when: openshift_host is defined
+
+- include_tasks: kubernetes.yml
+  when: kubernetes_context is defined
+
+- name: Use kubectl or oc
+  set_fact:
+    kubectl_or_oc: "{{ openshift_oc_bin if openshift_oc_bin is defined else 'kubectl' }}"
+
+- name: Get Postgres Service Detail
+  shell: "{{ kubectl_or_oc }} describe svc {{ postgresql_service_name }} -n {{ kubernetes_namespace }}"
+  register: postgres_svc_details
+  ignore_errors: yes
+  when: "pg_hostname is not defined or pg_hostname == ''"
+
+- name: Deploy PostgreSQL (OpenShift)
+  block:
+    - name: Template PostgreSQL Deployment
+      template:
+        src: postgresql-persistent.yml.j2
+        dest: "{{ kubernetes_base_path }}/postgresql-persistent.yml"
+        mode: '0600'
+
+    - name: Deploy and Activate Postgres
+      shell: |
+        {{ openshift_oc_bin }} new-app --file={{ kubernetes_base_path }}/postgresql-persistent.yml \
+          -e MEMORY_LIMIT={{ pg_memory_limit|default('512') }}Mi \
+          -e DATABASE_SERVICE_NAME=postgresql  \
+          -e POSTGRESQL_MAX_CONNECTIONS={{ pg_max_connections|default(1024) }} \
+          -e POSTGRESQL_USER={{ pg_username }} \
+          -e POSTGRESQL_PASSWORD={{ pg_password }} \
+          -e POSTGRESQL_DATABASE={{ pg_database }} \
+          -e POSTGRESQL_VERSION=9.5 \
+          -n {{ kubernetes_namespace }}
+      register: openshift_pg_activate
+  when:
+    - pg_hostname is not defined or pg_hostname == ''
+    - postgres_svc_details is defined and postgres_svc_details.rc != 0
+    - openshift_host is defined
+
+- name: Deploy and Activate Postgres (Kubernetes)
+  shell: |
+    helm install --name {{ kubernetes_deployment_name }} --namespace {{ kubernetes_namespace }} \
+      --set postgresUser={{ pg_username }} \
+      --set postgresPassword={{ pg_password }} \
+      --set postgresDatabase={{ pg_database }} \
+      --set persistence.size={{ pg_volume_capacity|default('5')}}Gi \
+      stable/postgresql
+  when:
+    - pg_hostname is not defined or pg_hostname == ''
+    - postgres_svc_details is defined and postgres_svc_details.rc != 0
+    - kubernetes_context is defined
+  register: kubernetes_pg_activate
+
+- name: Set postgresql hostname to helm package service
+  set_fact:
+    pg_hostname: "{{ kubernetes_deployment_name }}-postgresql"
+  when:
+    - pg_hostname is not defined or pg_hostname == ''
+    - kubernetes_context is defined
+
+- name: Wait for Postgres to activate
+  pause:
+    seconds: 60
+  when: openshift_pg_activate.changed or kubernetes_pg_activate.changed
+
+- name: Ensure directory exists
+  file:
+    path: "{{ kubernetes_base_path }}"
+    state: directory
+
+- name: Template Kubernetes AWX Config
+  template:
+    src: configmap.yml.j2
+    dest: "{{ kubernetes_base_path }}/configmap.yml"
+    mode: '0600'
+
+- name: Set image names if using custom registry
+  block:
+    - name: Set task image name
+      set_fact:
+        kubernetes_task_image: "{{ docker_registry }}/{{ docker_registry_repository }}/{{ task_image }}"
+      when: kubernetes_task_image is not defined
+
+    - name: Set web image name
+      set_fact:
+        kubernetes_web_image: "{{ docker_registry }}/{{ docker_registry_repository }}/{{ web_image }}"
+      when: kubernetes_web_image is not defined
+  when: docker_registry is defined
+
+- name: Template Kubernetes AWX Deployment
+  template:
+    src: deployment.yml.j2
+    dest: "{{ kubernetes_base_path }}/deployment.yml"
+    mode: '0600'
+
+- name: Apply Configmap
+  shell: "{{ kubectl_or_oc }} apply -f {{ kubernetes_base_path }}/configmap.yml"
+
+- name: Apply Deployment
+  shell: "{{ kubectl_or_oc }} apply -f {{ kubernetes_base_path }}/deployment.yml"
