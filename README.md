@@ -39,6 +39,30 @@ The AWX Project Frequently Asked Questions can be found [here](https://www.ansib
  23 postgresPassword: abc123
 ```
 
+  * Also, update persistent storage settings within `values.yaml` custom to your specific use case:
+```
+ 52 persistence:
+ 53   enabled: true
+ 54 
+ 55   ## A manually managed Persistent Volume and Claim
+ 56   ## Requires persistence.enabled: true
+ 57   ## If defined, PVC must be created manually before volume will be bound
+ 58   # existingClaim:
+ 59 
+ 60   ## database data Persistent Volume Storage Class
+ 61   ## If defined, storageClassName: <storageClass>
+ 62   ## If set to "-", storageClassName: "", which disables dynamic provisioning
+ 63   ## If undefined (the default) or set to null, no storageClassName spec is
+ 64   ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+ 65   ##   GKE, AWS & OpenStack)
+ 66   ##
+ 67   storageClass: "general"
+ 68   accessMode: ReadWriteOnce
+ 69   size: 30Gi
+ 70   subPath: "postgresql-db"
+ 71   mountPath: /var/lib/postgresql/data/pgdata
+```
+
   * Now update your `./installer/inventory` postgres paramters to reflect whatever you put in above:
 ```
  60 # Set pg_hostname if you have an external postgres server, otherwise
