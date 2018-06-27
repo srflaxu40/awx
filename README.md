@@ -29,8 +29,9 @@ The AWX Project Frequently Asked Questions can be found [here](https://www.ansib
 * Edit the namespace and context for kubernetes / helm in `installer/inventory`
 * Install pip modules:
   `pip install -r requirements.txt`
-* Setup PostgreSQL.
-  * Edit the following values:
+* Setup PostgreSQL:
+  * We use the helm chart from [Charts/postgresql](https://github.com/kubernetes/charts/tree/master/stable/postgresql).
+  * Edit the following values in the `values.yaml` file:
 ```
  20 ## Default: postgres
  21 postgresUser: admin
