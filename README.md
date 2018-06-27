@@ -11,6 +11,11 @@ To learn more about using AWX, and Tower, view the [Tower docs site](http://docs
 
 The AWX Project Frequently Asked Questions can be found [here](https://www.ansible.com/awx-project-faq).
 
+# Table of Contents:
+   * [AWX](#awx)
+   * [Notes:](#notes)
+   * [Setup and installation:](#setup-and-installation)
+
 ---
 
 # Notes:
@@ -23,5 +28,29 @@ The AWX Project Frequently Asked Questions can be found [here](https://www.ansib
 * Edit the namespace and context for kubernetes / helm in `installer/inventory`
 * Install pip modules:
   `pip install -r requirements.txt`
+* Setup PostgreSQL.
+  * Edit the following values:
+```
+ 20 ## Default: postgres
+ 21 postgresUser: admin
+ 22 ## Default: random 10 character string
+ 23 postgresPassword: abc123
+```
+
+  * Now update your `./installer/inventory` postgres paramters to reflect whatever you put in above:
+```
+ 60 # Set pg_hostname if you have an external postgres server, otherwise
+ 61 # a new postgres service will be created
+ 62 pg_hostname=postgres-postgresql.default.svc.cluster.local
+ 63 pg_username=admin
+ 64 pg_password=abc123
+ 65 pg_database=awx
+ 66 pg_port=5432
+```
+
+  * Now install postgres:
+
+  `helm install --name postgres stable/postgresql -f values.yaml`
+
 * Run:
   `ansible-playbook -i inventory install.yml`

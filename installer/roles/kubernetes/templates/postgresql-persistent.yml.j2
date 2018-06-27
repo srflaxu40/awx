@@ -132,12 +132,8 @@ objects:
         restartPolicy: Always
         volumes:
         - name: ${DATABASE_SERVICE_NAME}-data
-{% if openshift_pg_emptydir | bool %}
-          emptyDir: {}
-{% else %}
           persistentVolumeClaim:
-            claimName: {{ openshift_pg_pvc_name }}
-{% endif %}
+            claimName: postgres-pvc
     triggers:
     - imageChangeParams:
         automatic: true

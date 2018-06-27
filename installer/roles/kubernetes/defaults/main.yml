@@ -20,7 +20,7 @@ kubernetes_rabbitmq_image: "ansible/awx_rabbitmq"
 kubernetes_memcached_version: "latest"
 kubernetes_memcached_image: "memcached"
 
-openshift_pg_emptydir: no
-openshift_pg_pvc_name: postgresql
+openshift_pg_emptydir: false
+openshift_pg_pvc_name: postgres-pvc
 
 kubernetes_deployment_name: awx
