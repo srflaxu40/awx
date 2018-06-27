@@ -21,6 +21,7 @@ The AWX Project Frequently Asked Questions can be found [here](https://www.ansib
 # Notes:
 * This repo was forked from the official [AWX repo](https://github.com/ansible/awx).
 * This was to customize the contents.  Please refer to the official documentation otherwise.
+* This expects External-DNS to be installed to your cluster.  You can figure this on k8s and AWS via the [external-dns repo](https://github.com/kubernetes-incubator/external-dns).
 
 ---
 
