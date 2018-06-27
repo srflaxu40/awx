@@ -13,8 +13,8 @@ The AWX Project Frequently Asked Questions can be found [here](https://www.ansib
 
 # Table of Contents:
    * [AWX](#awx)
-   * [Notes:](#notes)
-   * [Setup and installation:](#setup-and-installation)
+   * [Notes](#notes)
+   * [Setup and installation](#setup-and-installation)
 
 ---
 
