@@ -40,6 +40,7 @@ The AWX Project Frequently Asked Questions can be found [here](https://www.ansib
 ```
 
   * Also, update persistent storage settings within `values.yaml` custom to your specific use case:
+  
 ```
  52 persistence:
  53   enabled: true
