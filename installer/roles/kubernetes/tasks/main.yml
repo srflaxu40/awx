@@ -18,7 +18,7 @@
     kubectl_or_oc: "{{ openshift_oc_bin if openshift_oc_bin is defined else 'kubectl' }}"
 
 - name: Get Postgres Service Detail
-  shell: "{{ kubectl_or_oc }} describe svc {{ postgresql_service_name }} -n {{ kubernetes_namespace }}"
+  shell: "kubectl  describe svc postgres-postgresql -n {{ kubernetes_namespace }}"
   register: postgres_svc_details
   ignore_errors: yes
   when: "pg_hostname is not defined or pg_hostname == ''"
