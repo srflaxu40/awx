@@ -3,5 +3,4 @@
 
 - name: Set postgresql service name
   set_fact:
-    postgresql_service_name: "{{ kubernetes_deployment_name }}-postgresql"
-  when: "pg_hostname is not defined or pg_hostname == ''"
+    postgresql_service_name: "postgres-postgresql"
