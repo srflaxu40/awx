@@ -80,4 +80,4 @@ The AWX Project Frequently Asked Questions can be found [here](https://www.ansib
   `helm install --name postgres stable/postgresql -f values.yaml`
 
 * Run:
-  `ansible-playbook -i inventory install.yml`
+  `ansible-playbook -i inventory installer/install.yml`
