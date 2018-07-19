@@ -24,3 +24,5 @@ openshift_pg_emptydir: false
 openshift_pg_pvc_name: postgres-pvc
 
 kubernetes_deployment_name: awx
+
+cert_arn: default
