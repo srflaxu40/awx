@@ -1,6 +1,6 @@
 ---
-dockerhub_web_image: "{{ dockerhub_base | default('ansible') }}/awx_web:{{ dockerhub_version | default('latest') }}"
-dockerhub_task_image: "{{ dockerhub_base | default('ansible') }}/awx_task:{{ dockerhub_version | default('latest') }}"
+dockerhub_web_image: "{{ dockerhub_base | default('ansible') }}/awx_web:1.0.8"
+dockerhub_task_image: "{{ dockerhub_base | default('ansible') }}/awx_task:1.0.8"
 
 web_mem_request: 1
 web_cpu_request: 200
