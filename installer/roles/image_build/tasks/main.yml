@@ -1,13 +1,7 @@
 ---
-- name: Get Version from checkout if not provided
-  shell: "git describe --long --first-parent | sed 's/\\-g.*//' | sed 's/\\-/\\./'"
-  delegate_to: localhost
-  register: awx_version_command
-  when: awx_version is not defined
-
 - name: Set global version if not provided
   set_fact:
-    awx_version: "{{ awx_version_command.stdout }}"
+    awx_version: "{{ lookup('file', playbook_dir + '/../VERSION') }}"
   when: awx_version is not defined
 
 - name: Verify awx-logos directory exists for official install
@@ -43,21 +37,24 @@
   shell: make clean
   args:
     chdir: ..
-  ignore_errors: yes
+  ignore_errors: true
   when: not sdist.stat.exists
   delegate_to: localhost
 
 - name: Build sdist builder image
   docker_image:
-    buildargs:
-      http_proxy: "{{ http_proxy | default('') }}"
-      https_proxy: "{{ https_proxy | default('') }}"
-      no_proxy: "{{ no_proxy | default('') }}"
-    path: "{{ role_path }}/files"
-    dockerfile: Dockerfile.sdist
+    build:
+      path: "{{ role_path }}/files"
+      dockerfile: Dockerfile.sdist
+      pull: false
+      args:
+        http_proxy: "{{ http_proxy | default('') }}"
+        https_proxy: "{{ https_proxy | default('') }}"
+        no_proxy: "{{ no_proxy | default('') }}"
     name: awx_sdist_builder
     tag: "{{ awx_version }}"
-    force: true
+    source: 'build'
+    force_source: true
   delegate_to: localhost
   when: use_container_for_build|default(true)|bool
 
@@ -127,16 +124,17 @@
   delegate_to: localhost
 
 - name: Stage launch_awx_task
-  copy:
-    src: launch_awx_task.sh
+  template:
+    src: launch_awx_task.sh.j2
     dest: "{{ docker_base_path }}/launch_awx_task.sh"
     mode: '0700'
   delegate_to: localhost
 
-- name: Stage nginx.conf
+- name: Stage google-cloud-sdk.repo
   copy:
-    src: nginx.conf
-    dest: "{{ docker_base_path }}/nginx.conf"
+    src: google-cloud-sdk.repo
+    dest: "{{ docker_base_path }}/google-cloud-sdk.repo"
+    mode: '0700'
   delegate_to: localhost
 
 - name: Stage supervisor.conf
@@ -175,41 +173,36 @@
     dest: "{{ docker_base_path }}/Makefile"
   delegate_to: localhost
 
-- name: Stage ansible repo
-  copy:
-    src: 'ansible.repo'
-    dest: '{{ docker_base_path }}/ansible.repo'
-  delegate_to: localhost
-
-- name: Stage ansible repo key
-  copy:
-    src: 'RPM-GPG-KEY-ansible-release'
-    dest: '{{ docker_base_path }}/RPM-GPG-KEY-ansible-release'
-  delegate_to: localhost
-
 - name: Build base web image
   docker_image:
-    buildargs:
-      http_proxy: "{{ http_proxy | default('') }}"
-      https_proxy: "{{ https_proxy | default('') }}"
-      no_proxy: "{{ no_proxy | default('') }}"
-    path: "{{ docker_base_path }}"
-    dockerfile: Dockerfile
+    build:
+      path: "{{ docker_base_path }}"
+      dockerfile: Dockerfile
+      pull: false
+      args:
+        http_proxy: "{{ http_proxy | default('') }}"
+        https_proxy: "{{ https_proxy | default('') }}"
+        no_proxy: "{{ no_proxy | default('') }}"
     name: "{{ web_image }}"
     tag: "{{ awx_version }}"
+    source: 'build'
+    force_source: true
   delegate_to: localhost
 
 - name: Build base task image
   docker_image:
-    buildargs:
-      http_proxy: "{{ http_proxy | default('') }}"
-      https_proxy: "{{ https_proxy | default('') }}"
-      no_proxy: "{{ no_proxy | default('') }}"
-    path: "{{ docker_base_path }}"
-    dockerfile: Dockerfile.task
+    build:
+      path: "{{ docker_base_path }}"
+      dockerfile: Dockerfile.task
+      pull: false
+      args:
+        http_proxy: "{{ http_proxy | default('') }}"
+        https_proxy: "{{ https_proxy | default('') }}"
+        no_proxy: "{{ no_proxy | default('') }}"
     name: "{{ task_image }}"
     tag: "{{ awx_version }}"
-    pull: no
+    source: 'build'
+    force_source: true
   delegate_to: localhost
 
 - name: Tag task and web images as latest
@@ -223,5 +216,5 @@
   file:
     path: "{{ docker_base_path }}"
     state: absent
-  when: cleanup_docker_base|default(True)
+  when: cleanup_docker_base|default(True)|bool
   delegate_to: localhost

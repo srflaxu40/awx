@@ -10,11 +10,11 @@ message: |-
     Database Name: ${POSTGRESQL_DATABASE}
    Connection URL: postgresql://${DATABASE_SERVICE_NAME}:5432/
 
-  For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.
+  For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/.
 metadata:
   annotations:
     description: |-
-      PostgreSQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.
+      PostgreSQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/.
 
       NOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.
     iconClass: icon-postgresql
@@ -35,11 +35,13 @@ objects:
     annotations:
       template.openshift.io/expose-database_name: '{.data[''database-name'']}'
       template.openshift.io/expose-password: '{.data[''database-password'']}'
+      template.openshift.io/expose-admin_password: '{.data[''database-admin-password'']}'
       template.openshift.io/expose-username: '{.data[''database-user'']}'
     name: ${DATABASE_SERVICE_NAME}
   stringData:
     database-name: ${POSTGRESQL_DATABASE}
     database-password: ${POSTGRESQL_PASSWORD}
+    database-admin-password: ${POSTGRESQL_PASSWORD}
     database-user: ${POSTGRESQL_USER}
 - apiVersion: v1
   kind: Service
@@ -97,7 +99,7 @@ objects:
                 name: ${DATABASE_SERVICE_NAME}
           - name: POSTGRESQL_MAX_CONNECTIONS
             value: ${POSTGRESQL_MAX_CONNECTIONS}
-          image: ' '
+          image: registry.access.redhat.com/rhscl/postgresql-10-rhel7
           imagePullPolicy: IfNotPresent
           livenessProbe:
             initialDelaySeconds: 30
@@ -114,7 +116,7 @@ objects:
               - /bin/sh
               - -i
               - -c
-              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE
+              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d template1
                 -c 'SELECT 1'
             initialDelaySeconds: 5
             timeoutSeconds: 1
@@ -132,19 +134,13 @@ objects:
         restartPolicy: Always
         volumes:
         - name: ${DATABASE_SERVICE_NAME}-data
+{% if openshift_pg_emptydir | bool %}
+          emptyDir: {}
+{% else %}
           persistentVolumeClaim:
-            claimName: postgres-pvc
+            claimName: {{ openshift_pg_pvc_name }}
+{% endif %}
     triggers:
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - postgresql
-        from:
-          kind: ImageStreamTag
-          name: postgresql:${POSTGRESQL_VERSION}
-          namespace: ${NAMESPACE}
-        lastTriggeredImage: ""
-      type: ImageChange
     - type: ConfigChange
   status: {}
 parameters:
@@ -180,8 +176,3 @@ parameters:
   name: POSTGRESQL_DATABASE
   required: true
   value: sampledb
-- description: Version of PostgreSQL image to be used (9.2, 9.4, 9.5 or latest).
-  displayName: Version of PostgreSQL Image
-  name: POSTGRESQL_VERSION
-  required: true
-  value: "9.5"
