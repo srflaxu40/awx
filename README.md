@@ -1,6 +1,7 @@
-[![Gated by Zuul](https://zuul-ci.org/gated.svg)](https://ansible.softwarefactory-project.io/zuul/status)
+[![Run Status](https://api.shippable.com/projects/591c82a22f895107009e8b35/badge?branch=devel)](https://app.shippable.com/github/ansible/awx)
 
-<img src="https://raw.githubusercontent.com/ansible/awx-logos/master/awx/ui/client/assets/logo-login.svg?sanitize=true" width=200 alt="AWX" />
+AWX
+===
 
 AWX provides a web-based user interface, REST API, and task engine built on top of [Ansible](https://github.com/ansible/ansible). It is the upstream project for [Tower](https://www.ansible.com/tower), a commercial derivative of AWX.  
 
@@ -10,37 +11,73 @@ To learn more about using AWX, and Tower, view the [Tower docs site](http://docs
 
 The AWX Project Frequently Asked Questions can be found [here](https://www.ansible.com/awx-project-faq).
 
-The AWX logos and branding assets are covered by [our trademark guidelines](https://github.com/ansible/awx-logos/blob/master/TRADEMARKS.md).
+# Table of Contents:
+   * [AWX](#awx)
+   * [Notes](#notes)
+   * [Setup and installation](#setup-and-installation)
 
-Contributing
-------------
+---
 
-- Refer to the [Contributing guide](./CONTRIBUTING.md) to get started developing, testing, and building AWX.
-- All code submissions are done through pull requests against the `devel` branch.
-- All contributors must use git commit --signoff for any commit to be merged, and agree that usage of --signoff constitutes agreement with the terms of [DCO 1.1](./DCO_1_1.md)
-- Take care to make sure no merge commits are in the submission, and use `git rebase` vs `git merge` for this reason.
-- If submitting a large code change, it's a good idea to join the `#ansible-awx` channel on irc.freenode.net, and talk about what you would like to do or add first. This not only helps everyone know what's going on, it also helps save time and effort, if the community decides some changes are needed.
+# Notes:
+* This repo was forked from the official [AWX repo](https://github.com/ansible/awx).
+* This was to customize the contents.  Please refer to the official documentation otherwise.
+* This expects External-DNS to be installed to your cluster.  You can figure this on k8s and AWS via the [external-dns repo](https://github.com/kubernetes-incubator/external-dns).
 
-Reporting Issues
-----------------
+---
 
-If you're experiencing a problem that you feel is a bug in AWX, or have ideas for how to improve AWX, we encourage you to open an issue, and share your feedback. But before opening a new issue, we ask that you please take a look at our [Issues guide](./ISSUES.md).
+# Setup and installation:
+* Edit the namespace and context for kubernetes / helm in `installer/inventory`
+* Install pip modules:
+  `pip install -r requirements.txt`
+* Setup PostgreSQL:
+  * We use the helm chart from [Charts/postgresql](https://github.com/kubernetes/charts/tree/master/stable/postgresql).
+  * Edit the following values in the `values.yaml` file:
+```
+ 20 ## Default: postgres
+ 21 postgresUser: admin
+ 22 ## Default: random 10 character string
+ 23 postgresPassword: abc123
+```
 
-Code of Conduct
----------------
+  * Also, update persistent storage settings within `values.yaml` custom to your specific use case:
+  
+```
+ 52 persistence:
+ 53   enabled: true
+ 54 
+ 55   ## A manually managed Persistent Volume and Claim
+ 56   ## Requires persistence.enabled: true
+ 57   ## If defined, PVC must be created manually before volume will be bound
+ 58   # existingClaim:
+ 59 
+ 60   ## database data Persistent Volume Storage Class
+ 61   ## If defined, storageClassName: <storageClass>
+ 62   ## If set to "-", storageClassName: "", which disables dynamic provisioning
+ 63   ## If undefined (the default) or set to null, no storageClassName spec is
+ 64   ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+ 65   ##   GKE, AWS & OpenStack)
+ 66   ##
+ 67   storageClass: "general"
+ 68   accessMode: ReadWriteOnce
+ 69   size: 30Gi
+ 70   subPath: "postgresql-db"
+ 71   mountPath: /var/lib/postgresql/data/pgdata
+```
 
-We ask all of our community members and contributors to adhere to the [Ansible code of conduct](http://docs.ansible.com/ansible/latest/community/code_of_conduct.html). If you have questions, or need assistance, please reach out to our community team at [codeofconduct@ansible.com](mailto:codeofconduct@ansible.com)   
+  * Now update your `./installer/inventory` postgres paramters to reflect whatever you put in above:
+```
+ 60 # Set pg_hostname if you have an external postgres server, otherwise
+ 61 # a new postgres service will be created
+ 62 pg_hostname=postgres-postgresql.default.svc.cluster.local
+ 63 pg_username=admin
+ 64 pg_password=abc123
+ 65 pg_database=awx
+ 66 pg_port=5432
+```
 
-Get Involved
-------------
+  * Now install postgres:
 
-We welcome your feedback and ideas. Here's how to reach us with feedback and questions:
+  `helm install --name postgres stable/postgresql -f values.yaml`
 
-- Join the `#ansible-awx` channel on irc.freenode.net
-- Join the [mailing list](https://groups.google.com/forum/#!forum/awx-project) 
-
-License
--------
-
-[Apache v2](./LICENSE.md)
-
+* Run:
+  `ansible-playbook -i inventory installer/install.yml`
